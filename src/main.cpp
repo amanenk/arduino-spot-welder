@@ -8,6 +8,8 @@
 
 #include <Timer.h>
 
+#include <EEPROM.h>
+
 // Module connection pins (Digital Pins)
 #define RS 5
 #define EN 6
@@ -36,6 +38,35 @@ PushButton backward_button = PushButton(BACKWARD_BUTTON, ENABLE_INTERNAL_PULLUP)
 
 #define MAX_PULSE_MS 3000
 uint16_t pulse_width = 0;
+
+void readEEPROM()
+{
+    Serial.println("eeprom read start");
+    byte buffer[2] = {0};
+
+    buffer[0] = EEPROM.read(0);
+    buffer[1] = EEPROM.read(1);
+
+    Serial.println(buffer[0]);
+    Serial.println(buffer[1]);
+
+    pulse_width = 0;
+
+    pulse_width = pulse_width | (buffer[0] << 8);
+    pulse_width = pulse_width | buffer[1];
+
+    Serial.print("eeprom read result: ");
+    Serial.println(pulse_width);
+}
+
+void writeEEPROM()
+{
+    byte buffer[2] = {0};
+    buffer[0] = (pulse_width >> 8) & 0xFF;
+    buffer[1] = pulse_width & 0xFF;
+    EEPROM.write(0, buffer[0]);
+    EEPROM.write(1, buffer[1]);
+}
 
 void stopWelding()
 {
@@ -71,7 +102,7 @@ void onButtonPressed(Button &btn)
             {
                 if (pulse_width < 50)
                 {
-                     pulse_width += 10;
+                    pulse_width += 10;
                 }
                 else if (pulse_width < 1000)
                 {
@@ -98,7 +129,7 @@ void onButtonPressed(Button &btn)
             {
                 if (pulse_width < 50)
                 {
-                     pulse_width -= 10;
+                    pulse_width -= 10;
                 }
                 else if (pulse_width < 1000)
                 {
@@ -115,6 +146,10 @@ void onButtonPressed(Button &btn)
     {
         Serial.println("Hmmm, no button wasp ressed");
     }
+
+    //save value to eeprom
+    writeEEPROM();
+
     Serial.print("pulse width: ");
     Serial.println(pulse_width);
     lcd.clear();
@@ -142,8 +177,14 @@ void setup()
     lcd.begin(16, 4);
     // Print a message to the LCD.
     lcd.print("hello, world!");
-    delay(1000);
+    delay(200);
     lcd.clear();
+
+    //read eeprom
+    readEEPROM();
+    lcd.clear();
+    lcd.print(pulse_width);
+    lcd.print(" ms");
 }
 
 void loop()

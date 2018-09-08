@@ -1,15 +1,21 @@
 #include <Arduino.h>
 
+//for lcd
 #include <LiquidCrystal.h>
 
+//for button callbacks
 #include <Button.h>
 #include <ButtonEventCallback.h>
 #include <PushButton.h>
 
+//timer for turning on welding
 #include <Timer.h>
 
+// for saving settings in the memory
 #include <EEPROM.h>
 
+
+//comment row below to turn off debig messages to serial
 #define SERIAL_LOG
 #if defined(SERIAL_LOG)
 #define DEBUG_PRINT(x) Serial.print(x)
@@ -38,12 +44,14 @@
 //welding timer
 Timer t;
 
+//init display
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
 // Create buttons
 PushButton ok_button = PushButton(OK_BUTTON, ENABLE_INTERNAL_PULLUP);
 PushButton forward_button = PushButton(FORWARD_BUTTON, ENABLE_INTERNAL_PULLUP);
 PushButton backward_button = PushButton(BACKWARD_BUTTON, ENABLE_INTERNAL_PULLUP);
+
 
 #define MAX_PULSE_MS 3000
 uint16_t pulse_width = 0;
@@ -124,8 +132,8 @@ void onButtonPressed(Button &btn)
         DEBUG_PRINTLN("BACKWARD pressed");
         if (pulse_width > 0)
         {
-            //if it close to maximum make it maximum
-            if (pulse_width < 20)
+            //if it close to minimum make it minimum
+            if (pulse_width < 10)
             {
                 pulse_width = 0;
             }

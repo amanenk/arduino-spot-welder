@@ -41,15 +41,10 @@ uint16_t pulse_width = 0;
 
 void readEEPROM()
 {
-    Serial.println("eeprom read start");
     byte buffer[2] = {0};
 
     buffer[0] = EEPROM.read(0);
     buffer[1] = EEPROM.read(1);
-
-    Serial.println(buffer[0]);
-    Serial.println(buffer[1]);
-
     pulse_width = 0;
 
     pulse_width = pulse_width | (buffer[0] << 8);

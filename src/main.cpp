@@ -10,6 +10,15 @@
 
 #include <EEPROM.h>
 
+#define SERIAL_LOG
+#if defined(SERIAL_LOG)
+#define DEBUG_PRINT(x) Serial.print(x)
+#define DEBUG_PRINTLN(x) Serial.println(x)
+#else
+#define DEBUG_PRINT(x)
+#define DEBUG_PRINTLN(x)
+#endif
+
 // Module connection pins (Digital Pins)
 #define RS 5
 #define EN 6
@@ -50,8 +59,8 @@ void readEEPROM()
     pulse_width = pulse_width | (buffer[0] << 8);
     pulse_width = pulse_width | buffer[1];
 
-    Serial.print("eeprom read result: ");
-    Serial.println(pulse_width);
+    DEBUG_PRINT("eeprom read result: ");
+    DEBUG_PRINTLN(pulse_width);
 }
 
 void writeEEPROM()
@@ -65,12 +74,12 @@ void writeEEPROM()
 
 void stopWelding()
 {
-    Serial.println("turn OFF welding pin");
+    DEBUG_PRINTLN("turn OFF welding pin");
 }
 
 void startWelding()
 {
-    Serial.println("turn ON welding pin");
+    DEBUG_PRINTLN("turn ON welding pin");
     t.pulseImmediate(RELAY_PIN, pulse_width, HIGH); // 10 seconds
     t.after(pulse_width, stopWelding);
 }
@@ -80,12 +89,12 @@ void onButtonPressed(Button &btn)
 {
     if (btn.is(ok_button))
     {
-        Serial.println("OK pressed");
+        DEBUG_PRINTLN("OK pressed");
         startWelding();
     }
     else if (btn.is(forward_button))
     {
-        Serial.println("FORWARD pressed");
+        DEBUG_PRINTLN("FORWARD pressed");
         if (pulse_width < MAX_PULSE_MS)
         {
             //if it close to maximum make it maximum
@@ -112,7 +121,7 @@ void onButtonPressed(Button &btn)
     }
     else if (btn.is(backward_button))
     {
-        Serial.println("BACKWARD pressed");
+        DEBUG_PRINTLN("BACKWARD pressed");
         if (pulse_width > 0)
         {
             //if it close to maximum make it maximum
@@ -139,14 +148,14 @@ void onButtonPressed(Button &btn)
     }
     else
     {
-        Serial.println("Hmmm, no button wasp ressed");
+        DEBUG_PRINTLN("Hmmm, no button wasp ressed");
     }
 
     //save value to eeprom
     writeEEPROM();
 
-    Serial.print("pulse width: ");
-    Serial.println(pulse_width);
+    DEBUG_PRINT("pulse width: ");
+    DEBUG_PRINTLN(pulse_width);
     lcd.clear();
     lcd.print(pulse_width);
     lcd.print(" ms");
@@ -154,7 +163,10 @@ void onButtonPressed(Button &btn)
 
 void setup()
 {
+
+#ifdef SERIAL_LOG
     Serial.begin(9600);
+#endif
 
     //set callback to buttons
     ok_button.onPress(onButtonPressed);

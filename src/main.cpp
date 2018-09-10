@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
-//for lcd
-#include <LiquidCrystal.h>
+//for 4 digit indicator
+#include <TM1637Display.h>
 
 //for button callbacks
 #include <Button.h>
@@ -26,12 +26,8 @@
 #endif
 
 // Module connection pins (Digital Pins)
-#define RS 5
-#define EN 6
-#define D4 9
-#define D5 10
-#define D6 11
-#define D7 12
+#define CLK 5
+#define DIO 6
 
 //buttons settings
 #define OK_BUTTON 2
@@ -44,17 +40,18 @@
 //welding timer
 Timer t;
 
-//init display
-LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
 // Create buttons
 PushButton ok_button = PushButton(OK_BUTTON, ENABLE_INTERNAL_PULLUP);
 PushButton forward_button = PushButton(FORWARD_BUTTON, ENABLE_INTERNAL_PULLUP);
 PushButton backward_button = PushButton(BACKWARD_BUTTON, ENABLE_INTERNAL_PULLUP);
 
+TM1637Display display(CLK, DIO);
 
 #define MAX_PULSE_MS 3000
 uint16_t pulse_width = 0;
+
+bool welding_active = false;
 
 void readEEPROM()
 {
@@ -83,13 +80,17 @@ void writeEEPROM()
 void stopWelding()
 {
     DEBUG_PRINTLN("turn OFF welding pin");
+    welding_active = false;
 }
 
 void startWelding()
 {
+    if(!welding_active){
+        welding_active = true;
     DEBUG_PRINTLN("turn ON welding pin");
     t.pulseImmediate(RELAY_PIN, pulse_width, HIGH); // 10 seconds
     t.after(pulse_width, stopWelding);
+    }
 }
 
 //buttons callback
@@ -164,14 +165,13 @@ void onButtonPressed(Button &btn)
 
     DEBUG_PRINT("pulse width: ");
     DEBUG_PRINTLN(pulse_width);
-    lcd.clear();
-    lcd.print(pulse_width);
-    lcd.print(" ms");
+    //show symbols on disllay
+    display.showNumberDec(pulse_width, true, 4, 0);
+    
 }
 
 void setup()
 {
-
 #ifdef SERIAL_LOG
     Serial.begin(9600);
 #endif
@@ -188,38 +188,31 @@ void setup()
     pinMode(RELAY_PIN, OUTPUT);
     digitalWrite(RELAY_PIN, LOW);
 
-    // start lcd
-    lcd.begin(16, 4);
-    // Print a message to the LCD.
-    lcd.print("hello, world!");
-    delay(200);
-    lcd.clear();
+      uint8_t data[] = { 0xff, 0xff, 0xff, 0xff };
+  display.setBrightness(0x0f);
+
+  // All segments on
+  display.setSegments(data);
+
+  
 
     //read eeprom
     readEEPROM();
-    lcd.clear();
-    lcd.print(pulse_width);
-    lcd.print(" ms");
+
+//show symbols on disllay
+    display.showNumberDec(pulse_width, true, 4, 0);
+
 }
 
 void loop()
 {
-    //handle timer
     t.update();
-    //handle buttons
     ok_button.update();
     forward_button.update();
     backward_button.update();
-    // // turn the LED on (HIGH is the voltage level)
-    // digitalWrite(LED_BUILTIN, HIGH);
-    // lcd.noBlink();
 
-    // // wait for a second
-    // delay(1000);
-    // // turn the LED off by making the voltage LOW
-    // digitalWrite(LED_BUILTIN, LOW);
-    // lcd.blink();
-
-    // // wait for a second
-    // delay(1000);
+    if(pulse_width > MAX_PULSE_MS){
+        pulse_width = 0;
+    }
+   
 }

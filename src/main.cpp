@@ -14,7 +14,6 @@
 // for saving settings in the memory
 #include <EEPROM.h>
 
-
 //comment row below to turn off debig messages to serial
 #define SERIAL_LOG
 #if defined(SERIAL_LOG)
@@ -31,15 +30,14 @@
 
 //buttons settings
 #define OK_BUTTON 2
-#define FORWARD_BUTTON 3
-#define BACKWARD_BUTTON 4
+#define FORWARD_BUTTON 4
+#define BACKWARD_BUTTON 3
 
 //pin to control relay
 #define RELAY_PIN A0
 
 //welding timer
 Timer t;
-
 
 // Create buttons
 PushButton ok_button = PushButton(OK_BUTTON, ENABLE_INTERNAL_PULLUP);
@@ -81,27 +79,32 @@ void stopWelding()
 {
     DEBUG_PRINTLN("turn OFF welding pin");
     welding_active = false;
+    display.showNumberDec(pulse_width, true, 4, 0);
 }
 
 void startWelding()
 {
-    if(!welding_active){
+    if (!welding_active)
+    {
         welding_active = true;
-    DEBUG_PRINTLN("turn ON welding pin");
-    t.pulseImmediate(RELAY_PIN, pulse_width, HIGH); // 10 seconds
-    t.after(pulse_width, stopWelding);
+        DEBUG_PRINTLN("turn ON welding pin");
+        t.pulseImmediate(RELAY_PIN, pulse_width, HIGH); // 10 seconds
+        t.after(pulse_width, stopWelding);
+        uint8_t data[] = {SEG_G, SEG_G, SEG_G, SEG_G};
+        display.setSegments(data);
     }
+}
+
+void onFirePressed(Button &btn)
+{
+    DEBUG_PRINTLN("OK pressed");
+    startWelding();
 }
 
 //buttons callback
 void onButtonPressed(Button &btn)
 {
-    if (btn.is(ok_button))
-    {
-        DEBUG_PRINTLN("OK pressed");
-        startWelding();
-    }
-    else if (btn.is(forward_button))
+    if (btn.is(forward_button))
     {
         DEBUG_PRINTLN("FORWARD pressed");
         if (pulse_width < MAX_PULSE_MS)
@@ -140,7 +143,7 @@ void onButtonPressed(Button &btn)
             }
             else
             {
-                if (pulse_width < 50)
+                if (pulse_width <= 50)
                 {
                     pulse_width -= 10;
                 }
@@ -167,7 +170,6 @@ void onButtonPressed(Button &btn)
     DEBUG_PRINTLN(pulse_width);
     //show symbols on disllay
     display.showNumberDec(pulse_width, true, 4, 0);
-    
 }
 
 void setup()
@@ -177,7 +179,7 @@ void setup()
 #endif
 
     //set callback to buttons
-    ok_button.onPress(onButtonPressed);
+    ok_button.onPress(onFirePressed);
     forward_button.onPress(onButtonPressed);
     backward_button.onPress(onButtonPressed);
 
@@ -188,20 +190,17 @@ void setup()
     pinMode(RELAY_PIN, OUTPUT);
     digitalWrite(RELAY_PIN, LOW);
 
-      uint8_t data[] = { 0xff, 0xff, 0xff, 0xff };
-  display.setBrightness(0x0f);
-
-  // All segments on
-  display.setSegments(data);
-
-  
+    uint8_t data[] = {0xff, 0xff, 0xff, 0xff};
+    display.setBrightness(0x0f);
+    // All segments on
+    display.setSegments(data);
+    delay(100);
 
     //read eeprom
     readEEPROM();
 
-//show symbols on disllay
+    //show symbols on disllay
     display.showNumberDec(pulse_width, true, 4, 0);
-
 }
 
 void loop()
@@ -211,8 +210,8 @@ void loop()
     forward_button.update();
     backward_button.update();
 
-    if(pulse_width > MAX_PULSE_MS){
+    if (pulse_width > MAX_PULSE_MS)
+    {
         pulse_width = 0;
     }
-   
 }

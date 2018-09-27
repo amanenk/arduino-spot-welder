@@ -85,6 +85,12 @@ void stopWelding()
     display.showNumberDec(pulse_width, true, 4, 0);
 }
 
+void stopIdle()
+{
+    DEBUG_PRINTLN("you can weld now");
+    after_welding_idle = false;
+}
+
 void startIdle()
 {
     after_welding_idle = true;
@@ -98,11 +104,7 @@ void startIdle()
     }
 }
 
-void stopIdle()
-{
-    DEBUG_PRINTLN("you can weld now");
-    after_welding_idle = false;
-}
+
 
 void startWelding()
 {

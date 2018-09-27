@@ -46,10 +46,13 @@ PushButton backward_button = PushButton(BACKWARD_BUTTON, ENABLE_INTERNAL_PULLUP)
 
 TM1637Display display(CLK, DIO);
 
-#define MAX_PULSE_MS 3000
+#define MAX_PULSE_MS 1000
 uint16_t pulse_width = 0;
 
 bool welding_active = false;
+bool after_welding_idle = false;
+
+#define IDLE_LENGTH 200
 
 void readEEPROM()
 {
@@ -82,23 +85,53 @@ void stopWelding()
     display.showNumberDec(pulse_width, true, 4, 0);
 }
 
+void startIdle()
+{
+    after_welding_idle = true;
+    if (pulse_width <= IDLE_LENGTH * 2)
+    {
+        t.after(IDLE_LENGTH, stopIdle);
+    }
+    else
+    {
+        t.after(pulse_width / 2, stopIdle);
+    }
+}
+
+void stopIdle()
+{
+    DEBUG_PRINTLN("you can weld now");
+    after_welding_idle = false;
+}
+
 void startWelding()
 {
     if (!welding_active)
     {
         welding_active = true;
         DEBUG_PRINTLN("turn ON welding pin");
-        t.pulseImmediate(RELAY_PIN, pulse_width, HIGH); // 10 seconds
+        t.pulseImmediate(RELAY_PIN, pulse_width, LOW); // 10 seconds
         t.after(pulse_width, stopWelding);
         uint8_t data[] = {SEG_G, SEG_G, SEG_G, SEG_G};
         display.setSegments(data);
+    }
+    else
+    {
+        DEBUG_PRINTLN("weleding is currently active");
     }
 }
 
 void onFirePressed(Button &btn)
 {
     DEBUG_PRINTLN("OK pressed");
-    startWelding();
+    if (!after_welding_idle)
+    {
+        startWelding();
+    }
+    else
+    {
+        DEBUG_PRINTLN("Welding not allowed now the device is in dile");
+    }
 }
 
 //buttons callback
@@ -177,18 +210,17 @@ void setup()
 #ifdef SERIAL_LOG
     Serial.begin(9600);
 #endif
-
-    //set callback to buttons
-    ok_button.onPress(onFirePressed);
-    forward_button.onPress(onButtonPressed);
-    backward_button.onPress(onButtonPressed);
-
     // initialize LED digital pin as an output.
     pinMode(LED_BUILTIN, OUTPUT);
 
     //setup and set relay pin
     pinMode(RELAY_PIN, OUTPUT);
-    digitalWrite(RELAY_PIN, LOW);
+    digitalWrite(RELAY_PIN, HIGH);
+
+    //set callback to buttons
+    ok_button.onPress(onFirePressed);
+    forward_button.onPress(onButtonPressed);
+    backward_button.onPress(onButtonPressed);
 
     uint8_t data[] = {0xff, 0xff, 0xff, 0xff};
     display.setBrightness(0x0f);
